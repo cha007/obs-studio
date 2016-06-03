@@ -154,7 +154,7 @@ struct SimpleOutput : BasicOutputHandler {
 
 	void UpdateRecordingSettings_x264_crf(int crf);
 	void UpdateRecordingSettings_qsv11(int crf);
-	void UpdateRecordingSettings_nvenc(int bitrate);
+	void UpdateRecordingSettings_nvenc(int cqp);
 	void UpdateRecordingSettings();
 	void UpdateRecordingAudioSettings();
 	virtual void Update() override;
@@ -342,6 +342,7 @@ void SimpleOutput::Update()
 
 	preset = config_get_string(main->Config(), "SimpleOutput", presetType);
 
+	obs_data_set_string(h264Settings, "rate_control", "CBR");
 	obs_data_set_int(h264Settings, "bitrate", videoBitrate);
 
 	if (advanced) {
@@ -349,7 +350,7 @@ void SimpleOutput::Update()
 		obs_data_set_string(h264Settings, "x264opts", custom);
 	}
 
-	obs_data_set_bool(aacSettings, "cbr", true);
+	obs_data_set_string(aacSettings, "rate_control", "CBR");
 	obs_data_set_int(aacSettings, "bitrate", audioBitrate);
 
 	obs_service_apply_encoder_settings(main->GetService(),
@@ -378,7 +379,7 @@ void SimpleOutput::UpdateRecordingAudioSettings()
 {
 	obs_data_t *settings = obs_data_create();
 	obs_data_set_int(settings, "bitrate", 192);
-	obs_data_set_bool(settings, "cbr", true);
+	obs_data_set_string(settings, "rate_control", "CBR");
 
 	obs_encoder_update(aacRecording, settings);
 
@@ -408,11 +409,9 @@ int SimpleOutput::CalcCRF(int crf)
 void SimpleOutput::UpdateRecordingSettings_x264_crf(int crf)
 {
 	obs_data_t *settings = obs_data_create();
-	obs_data_set_int(settings, "bitrate", 1000);
-	obs_data_set_int(settings, "buffer_size", 0);
 	obs_data_set_int(settings, "crf", crf);
 	obs_data_set_bool(settings, "use_bufsize", true);
-	obs_data_set_bool(settings, "cbr", false);
+	obs_data_set_string(settings, "rate_control", "CRF");
 	obs_data_set_string(settings, "profile", "high");
 	obs_data_set_string(settings, "preset",
 			lowCPUx264 ? "ultrafast" : "veryfast");
@@ -431,7 +430,7 @@ static bool icq_available(obs_encoder_t *encoder)
 	size_t num = obs_property_list_item_count(p);
 	for (size_t i = 0; i < num; i++) {
 		const char *val = obs_property_list_item_string(p, i);
-		if (strcmp(val, "ICQ_LA") == 0) {
+		if (strcmp(val, "ICQ") == 0) {
 			icq_found = true;
 			break;
 		}
@@ -449,7 +448,7 @@ void SimpleOutput::UpdateRecordingSettings_qsv11(int crf)
 	obs_data_set_string(settings, "profile", "high");
 
 	if (icq) {
-		obs_data_set_string(settings, "rate_control", "LA_ICQ");
+		obs_data_set_string(settings, "rate_control", "ICQ");
 		obs_data_set_int(settings, "icq_quality", crf);
 	} else {
 		obs_data_set_string(settings, "rate_control", "CQP");
@@ -463,12 +462,13 @@ void SimpleOutput::UpdateRecordingSettings_qsv11(int crf)
 	obs_data_release(settings);
 }
 
-void SimpleOutput::UpdateRecordingSettings_nvenc(int bitrate)
+void SimpleOutput::UpdateRecordingSettings_nvenc(int cqp)
 {
 	obs_data_t *settings = obs_data_create();
+	obs_data_set_string(settings, "rate_control", "CQP");
 	obs_data_set_string(settings, "profile", "high");
 	obs_data_set_string(settings, "preset", "hq");
-	obs_data_set_int(settings, "bitrate", bitrate);
+	obs_data_set_int(settings, "cqp", cqp);
 
 	obs_encoder_update(h264Recording, settings);
 
@@ -487,7 +487,7 @@ void SimpleOutput::UpdateRecordingSettings()
 		UpdateRecordingSettings_qsv11(crf);
 
 	} else if (videoEncoder == SIMPLE_ENCODER_NVENC) {
-		UpdateRecordingSettings_nvenc(ultra_hq ? 90000 : 22000);
+		UpdateRecordingSettings_nvenc(crf);
 	}
 }
 

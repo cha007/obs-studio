@@ -1855,6 +1855,12 @@ void obs_source_filter_add(obs_source_t *source, obs_source_t *filter)
 	calldata_set_ptr(&cd, "filter", filter);
 
 	signal_handler_signal(source->context.signals, "filter_add", &cd);
+
+	if (source && filter)
+		blog(source->context.private ? LOG_DEBUG : LOG_INFO,
+				"- filter '%s' (%s) added to source '%s'",
+				filter->context.name, filter->info.id,
+				source->context.name);
 }
 
 static bool obs_source_filter_remove_refless(obs_source_t *source,
@@ -1886,6 +1892,12 @@ static bool obs_source_filter_remove_refless(obs_source_t *source,
 	calldata_set_ptr(&cd, "filter", filter);
 
 	signal_handler_signal(source->context.signals, "filter_remove", &cd);
+
+	if (source && filter)
+		blog(source->context.private ? LOG_DEBUG : LOG_INFO,
+				"- filter '%s' (%s) removed from source '%s'",
+				filter->context.name, filter->info.id,
+				source->context.name);
 
 	if (filter->info.filter_remove)
 		filter->info.filter_remove(filter->context.data,
@@ -2898,7 +2910,11 @@ static void enum_source_tree_callback(obs_source_t *parent, obs_source_t *child,
 		void *param)
 {
 	struct source_enum_data *data = param;
+	bool is_transition = child->info.type == OBS_SOURCE_TYPE_TRANSITION;
 
+	if (is_transition)
+		obs_transition_enum_sources(child,
+				enum_source_tree_callback, param);
 	if (child->info.enum_active_sources) {
 		if (child->context.data) {
 			child->info.enum_active_sources(child->context.data,
