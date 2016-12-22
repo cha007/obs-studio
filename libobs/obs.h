@@ -112,6 +112,8 @@ enum obs_allow_direct_render {
 };
 
 enum obs_scale_type {
+	OBS_SCALE_DISABLE,
+	OBS_SCALE_POINT,
 	OBS_SCALE_BICUBIC,
 	OBS_SCALE_BILINEAR,
 	OBS_SCALE_LANCZOS
@@ -338,6 +340,9 @@ EXPORT int obs_open_module(obs_module_t **module, const char *path,
  */
 EXPORT bool obs_init_module(obs_module_t *module);
 
+/** Logs loaded modules */
+EXPORT void obs_log_loaded_modules(void);
+
 /** Returns the module file name */
 EXPORT const char *obs_get_module_file_name(obs_module_t *module);
 
@@ -528,8 +533,8 @@ enum obs_base_effect {
 EXPORT gs_effect_t *obs_get_base_effect(enum obs_base_effect effect);
 
 /* DEPRECATED: gets texture_rect default effect */
-DEPRECATED_START EXPORT gs_effect_t *obs_get_default_rect_effect(void)
-	DEPRECATED_END;
+DEPRECATED
+EXPORT gs_effect_t *obs_get_default_rect_effect(void);
 
 /** Returns the primary obs signal handler */
 EXPORT signal_handler_t *obs_get_signal_handler(void);
@@ -604,6 +609,8 @@ EXPORT obs_source_t *obs_view_get_source(obs_view_t *view,
 EXPORT void obs_view_render(obs_view_t *view);
 
 EXPORT uint64_t obs_get_video_frame_time(void);
+
+EXPORT double obs_get_active_fps(void);
 
 
 /* ------------------------------------------------------------------------- */
@@ -1253,6 +1260,11 @@ EXPORT void obs_sceneitem_set_crop(obs_sceneitem_t *item,
 EXPORT void obs_sceneitem_get_crop(const obs_sceneitem_t *item,
 		struct obs_sceneitem_crop *crop);
 
+EXPORT void obs_sceneitem_set_scale_filter(obs_sceneitem_t *item,
+		enum obs_scale_type filter);
+EXPORT enum obs_scale_type obs_sceneitem_get_scale_filter(
+		obs_sceneitem_t *item);
+
 EXPORT void obs_sceneitem_defer_update_begin(obs_sceneitem_t *item);
 EXPORT void obs_sceneitem_defer_update_end(obs_sceneitem_t *item);
 
@@ -1639,10 +1651,16 @@ EXPORT const char *obs_encoder_get_id(const obs_encoder_t *encoder);
 EXPORT uint32_t obs_get_encoder_caps(const char *encoder_id);
 
 /** Duplicates an encoder packet */
+DEPRECATED
 EXPORT void obs_duplicate_encoder_packet(struct encoder_packet *dst,
 		const struct encoder_packet *src);
 
+DEPRECATED
 EXPORT void obs_free_encoder_packet(struct encoder_packet *packet);
+
+EXPORT void obs_encoder_packet_ref(struct encoder_packet *dst,
+		struct encoder_packet *src);
+EXPORT void obs_encoder_packet_release(struct encoder_packet *packet);
 
 
 /* ------------------------------------------------------------------------- */
