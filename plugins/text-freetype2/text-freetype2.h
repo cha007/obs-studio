@@ -15,6 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ******************************************************************************/
 
+#pragma once
+
 #include <obs-module.h>
 #include <ft2build.h>
 
@@ -28,8 +30,8 @@ struct glyph_info {
 };
 
 struct ft2_source {
-	char     *font_name;
-	char     *font_style;
+	char *font_name;
+	char *font_style;
 	uint16_t font_size;
 	uint32_t font_flags;
 
@@ -38,6 +40,7 @@ struct ft2_source {
 	char *text_file;
 	wchar_t *text;
 	time_t m_timestamp;
+	bool update_file;
 	uint64_t last_checked;
 
 	uint32_t cx, cy, max_h, custom_width;
@@ -51,7 +54,7 @@ struct ft2_source {
 
 	struct glyph_info *cacheglyphs[num_cache_slots];
 
-	FT_Face	font_face;
+	FT_Face font_face;
 
 	uint8_t *texbuf;
 	gs_vertbuffer_t *vbuf;
@@ -59,6 +62,7 @@ struct ft2_source {
 	gs_effect_t *draw_effect;
 	bool outline_text, drop_shadow;
 	bool log_mode, word_wrap;
+	uint32_t log_lines;
 
 	obs_source_t *src;
 };

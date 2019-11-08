@@ -27,7 +27,7 @@
 #define DEPRECATED __declspec(deprecated)
 #define FORCE_INLINE __forceinline
 #else
-#define DEPRECATED __attribute__ ((deprecated))
+#define DEPRECATED __attribute__((deprecated))
 #define FORCE_INLINE inline __attribute__((always_inline))
 #endif
 
@@ -39,7 +39,7 @@
  * incredibly inept moron could possibly be managing the visual C compiler
  * project.  They should be fired, and legally forbidden to have a job in
  * ANYTHING even REMOTELY related to programming.  FOREVER.  This should also
- * apply to the next 10 generations all of their descendents. */
+ * apply to the next 10 generations all of their descendants. */
 #ifndef __cplusplus
 #define inline __inline
 #endif

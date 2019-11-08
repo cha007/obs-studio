@@ -30,7 +30,6 @@
 extern "C" {
 #endif
 
-
 enum obs_source_type {
 	OBS_SOURCE_TYPE_INPUT,
 	OBS_SOURCE_TYPE_FILTER,
@@ -38,6 +37,11 @@ enum obs_source_type {
 	OBS_SOURCE_TYPE_SCENE,
 };
 
+enum obs_balance_type {
+	OBS_BALANCE_TYPE_SINE_LAW,
+	OBS_BALANCE_TYPE_SQUARE_LAW,
+	OBS_BALANCE_TYPE_LINEAR,
+};
 
 /**
  * @name Source output flags
@@ -52,7 +56,7 @@ enum obs_source_type {
  * Unless SOURCE_ASYNC_VIDEO is specified, the source must include the
  * video_render callback in the source definition structure.
  */
-#define OBS_SOURCE_VIDEO        (1<<0)
+#define OBS_SOURCE_VIDEO (1 << 0)
 
 /**
  * Source has audio.
@@ -61,10 +65,10 @@ enum obs_source_type {
  * be automatically converted and uploaded.  If used with SOURCE_ASYNC_VIDEO,
  * audio will automatically be synced up to the video output.
  */
-#define OBS_SOURCE_AUDIO        (1<<1)
+#define OBS_SOURCE_AUDIO (1 << 1)
 
 /** Async video flag (use OBS_SOURCE_ASYNC_VIDEO) */
-#define OBS_SOURCE_ASYNC        (1<<2)
+#define OBS_SOURCE_ASYNC (1 << 2)
 
 /**
  * Source passes raw video data via RAM.
@@ -77,7 +81,7 @@ enum obs_source_type {
  * obs_source_getframe to get the current frame data, and
  * obs_source_releaseframe to release the data when complete.
  */
-#define OBS_SOURCE_ASYNC_VIDEO  (OBS_SOURCE_ASYNC | OBS_SOURCE_VIDEO)
+#define OBS_SOURCE_ASYNC_VIDEO (OBS_SOURCE_ASYNC | OBS_SOURCE_VIDEO)
 
 /**
  * Source uses custom drawing, rather than a default effect.
@@ -85,7 +89,7 @@ enum obs_source_type {
  * If this flag is specified, the video_render callback will pass a NULL
  * effect, and effect-based filters will not use direct rendering.
  */
-#define OBS_SOURCE_CUSTOM_DRAW  (1<<3)
+#define OBS_SOURCE_CUSTOM_DRAW (1 << 3)
 
 /**
  * Source supports interaction.
@@ -93,7 +97,7 @@ enum obs_source_type {
  * When this is used, the source will receive interaction events
  * if they provide the necessary callbacks in the source definition structure.
  */
-#define OBS_SOURCE_INTERACTION (1<<5)
+#define OBS_SOURCE_INTERACTION (1 << 5)
 
 /**
  * Source composites sub-sources
@@ -104,7 +108,7 @@ enum obs_source_type {
  *
  * This capability flag is always set for transitions.
  */
-#define OBS_SOURCE_COMPOSITE (1<<6)
+#define OBS_SOURCE_COMPOSITE (1 << 6)
 
 /**
  * Source should not be fully duplicated
@@ -113,17 +117,41 @@ enum obs_source_type {
  * and should prefer to duplicate via holding references rather than full
  * duplication.
  */
-#define OBS_SOURCE_DO_NOT_DUPLICATE (1<<7)
+#define OBS_SOURCE_DO_NOT_DUPLICATE (1 << 7)
 
 /**
  * Source is deprecated and should not be used
  */
-#define OBS_SOURCE_DEPRECATED (1<<8)
+#define OBS_SOURCE_DEPRECATED (1 << 8)
+
+/**
+ * Source cannot have its audio monitored
+ *
+ * Specifies that this source may cause a feedback loop if audio is monitored
+ * with a device selected as desktop audio.
+ *
+ * This is used primarily with desktop audio capture sources.
+ */
+#define OBS_SOURCE_DO_NOT_SELF_MONITOR (1 << 9)
+
+/**
+ * Source type is currently disabled and should not be shown to the user
+ */
+#define OBS_SOURCE_CAP_DISABLED (1 << 10)
+
+/**
+ * Source should enable monitoring by default.  Monitoring should be set by the
+ * frontend if this flag is set.
+ */
+#define OBS_SOURCE_MONITOR_BY_DEFAULT (1 << 11)
+
+/** Used internally for audio submixing */
+#define OBS_SOURCE_SUBMIX (1 << 12)
 
 /** @} */
 
 typedef void (*obs_source_enum_proc_t)(obs_source_t *parent,
-		obs_source_t *child, void *param);
+				       obs_source_t *child, void *param);
 
 struct obs_source_audio_mix {
 	struct audio_output_data output[MAX_AUDIO_MIXES];
@@ -163,7 +191,7 @@ struct obs_source_info {
 	 * Creates the source data for the source
 	 *
 	 * @param  settings  Settings to initialize the source with
-	 * @param  source    Source that this data is assoicated with
+	 * @param  source    Source that this data is associated with
 	 * @return           The data associated with this source
 	 */
 	void *(*create)(obs_data_t *settings, obs_source_t *source);
@@ -191,6 +219,7 @@ struct obs_source_info {
 	 * Gets the default settings for this source
 	 *
 	 * @param[out]  settings  Data to assign default settings to
+	 * @deprecated            Use get_defaults2 if type_data is needed
 	 */
 	void (*get_defaults)(obs_data_t *settings);
 
@@ -198,6 +227,7 @@ struct obs_source_info {
 	 * Gets the property information of this source
 	 *
 	 * @return         The properties data
+	 * @deprecated     Use get_properties2 if type_data is needed
 	 */
 	obs_properties_t *(*get_properties)(void *data);
 
@@ -249,7 +279,7 @@ struct obs_source_info {
 	 * If the source output flags do not include SOURCE_CUSTOM_DRAW, all
 	 * a source needs to do is set the "image" parameter of the effect to
 	 * the desired texture, and then draw.  If the output flags include
-	 * SOURCE_COLOR_MATRIX, you may optionally set the the "color_matrix"
+	 * SOURCE_COLOR_MATRIX, you may optionally set the "color_matrix"
 	 * parameter of the effect to a custom 4x4 conversion matrix (by
 	 * default it will be set to an YUV->RGB conversion matrix)
 	 *
@@ -271,8 +301,8 @@ struct obs_source_info {
 	 * @return        New video frame data.  This can defer video data to
 	 *                be drawn later if time is needed for processing
 	 */
-	struct obs_source_frame *(*filter_video)(void *data,
-			struct obs_source_frame *frame);
+	struct obs_source_frame *(*filter_video)(
+		void *data, struct obs_source_frame *frame);
 
 	/**
 	 * Called to filter raw audio data.
@@ -289,7 +319,7 @@ struct obs_source_info {
 	 *                until the filter is removed/destroyed.
 	 */
 	struct obs_audio_data *(*filter_audio)(void *data,
-			struct obs_audio_data *audio);
+					       struct obs_audio_data *audio);
 
 	/**
 	 * Called to enumerate all active sources being used within this
@@ -301,8 +331,8 @@ struct obs_source_info {
 	 * @param  param          User data to pass to callback
 	 */
 	void (*enum_active_sources)(void *data,
-			obs_source_enum_proc_t enum_callback,
-			void *param);
+				    obs_source_enum_proc_t enum_callback,
+				    void *param);
 
 	/**
 	 * Called when saving a source.  This is a separate function because
@@ -335,9 +365,8 @@ struct obs_source_info {
 	 * @param mouse_up     Mouse event type (true if mouse-up)
 	 * @param click_count  Mouse click count (1 for single click, etc.)
 	 */
-	void (*mouse_click)(void *data,
-			const struct obs_mouse_event *event,
-			int32_t type, bool mouse_up, uint32_t click_count);
+	void (*mouse_click)(void *data, const struct obs_mouse_event *event,
+			    int32_t type, bool mouse_up, uint32_t click_count);
 	/**
 	 * Called when interacting with a source and a mouse-move occurs.
 	 *
@@ -345,8 +374,8 @@ struct obs_source_info {
 	 * @param event        Mouse event properties
 	 * @param mouse_leave  Mouse leave state (true if mouse left source)
 	 */
-	void (*mouse_move)(void *data,
-			const struct obs_mouse_event *event, bool mouse_leave);
+	void (*mouse_move)(void *data, const struct obs_mouse_event *event,
+			   bool mouse_leave);
 
 	/**
 	 * Called when interacting with a source and a mouse-wheel occurs.
@@ -356,9 +385,8 @@ struct obs_source_info {
 	 * @param x_delta      Movement delta in the horizontal direction
 	 * @param y_delta      Movement delta in the vertical direction
 	 */
-	void (*mouse_wheel)(void *data,
-			const struct obs_mouse_event *event, int x_delta,
-			int y_delta);
+	void (*mouse_wheel)(void *data, const struct obs_mouse_event *event,
+			    int x_delta, int y_delta);
 	/**
 	 * Called when interacting with a source and gain focus/lost focus event
 	 * occurs.
@@ -377,7 +405,7 @@ struct obs_source_info {
 	 * @param focus        Key event type (true if mouse-up)
 	 */
 	void (*key_click)(void *data, const struct obs_key_event *event,
-			bool key_up);
+			  bool key_up);
 
 	/**
 	 * Called when the filter is removed from a source
@@ -398,15 +426,58 @@ struct obs_source_info {
 	void (*free_type_data)(void *type_data);
 
 	bool (*audio_render)(void *data, uint64_t *ts_out,
-			struct obs_source_audio_mix *audio_output,
-			uint32_t mixers, size_t channels, size_t sample_rate);
+			     struct obs_source_audio_mix *audio_output,
+			     uint32_t mixers, size_t channels,
+			     size_t sample_rate);
+
+	/**
+	 * Called to enumerate all active and inactive sources being used
+	 * within this source.  If this callback isn't implemented,
+	 * enum_active_sources will be called instead.
+	 *
+	 * This is typically used if a source can have inactive child sources.
+	 *
+	 * @param  data           Filter data
+	 * @param  enum_callback  Enumeration callback
+	 * @param  param          User data to pass to callback
+	 */
+	void (*enum_all_sources)(void *data,
+				 obs_source_enum_proc_t enum_callback,
+				 void *param);
+
+	void (*transition_start)(void *data);
+	void (*transition_stop)(void *data);
+
+	/**
+	 * Gets the default settings for this source
+	 * 
+	 * If get_defaults is also defined both will be called, and the first
+	 * call will be to get_defaults, then to get_defaults2.
+	 *
+	 * @param       type_data The type_data variable of this structure
+	 * @param[out]  settings  Data to assign default settings to
+	 */
+	void (*get_defaults2)(void *type_data, obs_data_t *settings);
+
+	/**
+	 * Gets the property information of this source
+	 *
+	 * @param data      Source data
+	 * @param type_data The type_data variable of this structure
+	 * @return          The properties data
+	 */
+	obs_properties_t *(*get_properties2)(void *data, void *type_data);
+
+	bool (*audio_mix)(void *data, uint64_t *ts_out,
+			  struct audio_output_data *audio_output,
+			  size_t channels, size_t sample_rate);
 };
 
 EXPORT void obs_register_source_s(const struct obs_source_info *info,
-		size_t size);
+				  size_t size);
 
 /**
- * Regsiters a source definition to the current obs context.  This should be
+ * Registers a source definition to the current obs context.  This should be
  * used in obs_module_load.
  *
  * @param  info  Pointer to the source definition structure
